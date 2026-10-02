@@ -1,0 +1,19 @@
+MISIÓN EGIPTO AR — VERSIÓN VERTICAL
+
+Esta versión está optimizada para usar el celular en posición VERTICAL.
+
+Cambios:
+- Cámara a pantalla completa vertical.
+- Menú principal en 2 columnas.
+- Paneles adaptados al alto del celular.
+- Museo 3D con visor vertical y ancho completo.
+- Desafío más cómodo de leer y tocar.
+- Controles de audio minimizables.
+- Vista interior de la pirámide adaptada a vertical.
+- Se mantienen narraciones y visita guiada.
+- Se mantienen preguntas y respuestas mezcladas.
+
+IMPORTANTE:
+NO cambies targets.mind.
+NO cambies la lámina ni el QR.
+En GitHub reemplazá solamente index.html.
