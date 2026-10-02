@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Misión Egipto AR — Prototipo RA + recorrido 3D v4</title>
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:transparent}
+.hud{position:fixed;z-index:20;left:8px;right:8px;top:8px;text-align:center;pointer-events:none}
+.msg{display:inline-block;background:#fff8e8ee;color:#382510;padding:9px 13px;border-radius:14px;font-weight:700;box-shadow:0 2px 10px #0004}
+.controls{position:fixed;z-index:31;right:10px;top:58px;display:flex;gap:7px;flex-direction:column}
+.ctrl{border:1px solid #d3ad62;background:#fff8e8ee;color:#33230f;border-radius:50%;width:44px;height:44px;font-size:20px}
+.panel{position:fixed;z-index:60;left:10px;right:10px;bottom:10px;max-height:61%;overflow:auto;background:#fffdf4f5;color:#2e2418;border:2px solid #d3ad62;border-radius:18px;padding:14px;box-shadow:0 5px 22px #0006;display:none}
+.panel h2{font-size:20px;margin:0 42px 8px 0}.panel h3{font-size:16px;margin:12px 0 5px}.panel p{font-size:15px;line-height:1.42;margin:7px 0}
+.close{position:absolute;right:10px;top:9px;border:0;background:#17324d;color:white;border-radius:10px;padding:8px 10px;font-weight:bold}
+.action,.quiz button{display:block;width:100%;margin:7px 0;border:1px solid #b28b48;background:#fff7df;border-radius:11px;padding:11px;text-align:left;font-size:15px}
+.quiz button.correct{background:#dff4df}.quiz button.wrong{background:#f8dddd}.feedback{font-weight:bold;margin-top:8px}.small{font-size:12px;color:#6b583e}
+
+.arMenu{position:fixed;z-index:40;left:8px;right:8px;bottom:8px;display:none;grid-template-columns:repeat(3,1fr);gap:7px}
+.arMenu button{min-height:48px;border:1px solid #d3ad62;border-radius:13px;background:#fff8e8f2;color:#30200d;font-weight:700;font-size:13px;box-shadow:0 2px 9px #0005;padding:7px}
+.arMenu button:active{transform:scale(.97)}
+.interiorMenu{position:fixed;z-index:42;left:8px;right:8px;bottom:8px;display:none;grid-template-columns:repeat(2,1fr);gap:7px}
+.interiorMenu button{min-height:50px;border:1px solid #e3c77d;border-radius:13px;background:#231b14ee;color:#fff;font-weight:700;font-size:13px;padding:8px}
+.museumFrame{width:100%;height:310px;border:0;border-radius:12px;background:#eee}
+.credit{font-size:11px;color:#6b583e;line-height:1.3}
+
+#audioExpanded.open{display:flex!important}
+.controls.compact{opacity:.72}
+.panel.audio-open{right:62px}
+
+/* VERSIÓN VERTICAL PARA CELULAR */
+@media (orientation: portrait), (max-width: 700px){
+  .hud{left:6px;right:6px;top:6px}
+  .msg{font-size:13px;padding:7px 10px;max-width:78%}
+  .controls{right:7px;top:50px}
+  .ctrl{width:38px;height:38px;font-size:17px}
+
+  /* Panel ocupa la pantalla de forma vertical sin tapar controles esenciales */
+  .panel{
+    left:6px;right:6px;bottom:6px;
+    top:64px; bottom:10px;
+    max-height:none;
+    padding:12px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    border-radius:15px;
+  }
+  .panel h2{font-size:18px;margin-right:38px}
+  .panel p{font-size:14px}
+  .close{padding:7px 9px}
+
+  /* Menú principal vertical: dos columnas grandes */
+  .arMenu{
+    left:6px;right:6px;bottom:6px;
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .arMenu button{
+    min-height:46px;
+    font-size:12px;
+    padding:6px;
+  }
+  .arMenu button[data-htmlkey="museo"]{grid-column:1/3!important}
+
+  /* Interior vertical y cómodo */
+  .interiorMenu{
+    left:6px;right:6px;bottom:6px;
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .interiorMenu button{min-height:46px;font-size:12px;padding:6px}
+
+  /* Modelos arqueológicos: visor vertical, sin corte lateral */
+  .museumFrame{
+    width:100%;
+    height:46vh;
+    min-height:330px;
+    max-height:500px;
+    display:block;
+    border-radius:12px;
+  }
+
+  .quiz button,.action{font-size:14px;padding:10px}
+}
+
+/* La cámara/escena siempre llena la pantalla sin deformarse */
+a-scene,.a-canvas{
+  width:100vw!important;
+  height:100vh!important;
+  max-width:100vw!important;
+  overflow:hidden!important;
+}
+video{
+  width:100vw!important;
+  height:100vh!important;
+  object-fit:cover!important;
+}
+
+
+/* PROTOTIPO V4: RA realista + recorrido inmersivo 3D */
+.tourOverlay{position:fixed;inset:0;z-index:200;background:#090806;display:none;color:#f7ead0;overflow:hidden}
+.tourOverlay.open{display:block}
+.tourTop{position:absolute;z-index:230;left:12px;right:12px;top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tourBadge{background:#17120ddd;border:1px solid #b99555;border-radius:14px;padding:8px 11px;font-weight:700;font-size:13px}
+.tourExit{border:1px solid #b99555;background:#2b1d13ee;color:#fff;border-radius:12px;padding:9px 12px;font-weight:700}
+.tourStage{position:absolute;inset:0;perspective:700px;overflow:hidden;background:radial-gradient(circle at 50% 45%,#3b2c1e 0,#17110c 42%,#050403 82%)}
+.tunnel{position:absolute;left:50%;top:50%;width:88vw;height:72vh;transform-style:preserve-3d;transform:translate(-50%,-50%) rotateX(1deg)}
+.wall{position:absolute;background:linear-gradient(90deg,#4a3828,#8c6b46 48%,#4b3928);box-shadow:inset 0 0 35px #0009;border:1px solid #a9824f55}
+.wall.left{width:70vh;height:72vh;left:-35vh;transform:rotateY(78deg) translateZ(-12vw)}
+.wall.right{width:70vh;height:72vh;right:-35vh;transform:rotateY(-78deg) translateZ(-12vw)}
+.wall.floor{width:88vw;height:80vh;left:0;bottom:-53vh;transform:rotateX(78deg);background:linear-gradient(#8b6a45,#3c2c20)}
+.wall.ceiling{width:88vw;height:80vh;left:0;top:-53vh;transform:rotateX(-78deg);background:linear-gradient(#3a2b20,#75583b)}
+.endWall{position:absolute;left:16%;right:16%;top:16%;bottom:16%;transform:translateZ(-300px);background:linear-gradient(135deg,#7a5b3d,#3a2b20);border:8px solid #4b3828;box-shadow:0 0 90px #d5a65422,inset 0 0 50px #000c}
+.torchGlow{position:absolute;left:50%;top:42%;width:30vw;height:30vw;max-width:240px;max-height:240px;transform:translate(-50%,-50%);background:radial-gradient(circle,#f3c67555 0,#c88d3422 35%,transparent 70%);filter:blur(8px);animation:flicker 1.8s infinite alternate}
+@keyframes flicker{from{opacity:.62;transform:translate(-50%,-50%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1.07)}}
+.tourStage.moving .tunnel{animation:advance 1.7s ease-in-out}
+@keyframes advance{0%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.28)}100%{transform:translate(-50%,-50%) scale(1)}}
+.tourCard{position:absolute;z-index:225;left:10px;right:10px;bottom:10px;background:#120e0bdc;border:1px solid #b99555;border-radius:17px;padding:13px 14px;box-shadow:0 5px 24px #000b;backdrop-filter:blur(4px)}
+.tourCard h2{margin:0 0 6px;font-size:19px}.tourCard p{margin:5px 0 10px;font-size:14px;line-height:1.42}
+.tourActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tourActions button{border:1px solid #b99555;background:#f0dfba;color:#2a1d11;border-radius:11px;padding:10px;font-weight:700}
+.tourActions button.secondary{background:#2a211a;color:#fff}
+
+</style>
+</head>
+<body>
+<div class="hud"><div id="status" class="msg">Permití la cámara y apuntá a la lámina de Egipto</div></div>
+<div class="controls" id="audioControls">
+<button id="audioToggle" class="ctrl" title="Audio">🎧</button>
+<div id="audioExpanded" style="display:none;flex-direction:column;gap:7px">
+<button id="soundBtn" class="ctrl" title="Sonido ambiental">🔇</button>
+<button id="narrateBtn" class="ctrl" title="Narrar contenido">🔊</button>
+</div>
+</div>
+<div id="panel" class="panel"><button id="close" class="close">✕</button><h2 id="ptitle"></h2><div id="pbody"></div></div>
+
+
+<div id="arMenu" class="arMenu">
+ <button data-htmlkey="piramide">🏜️ Pirámide / Entrar 3D</button>
+ <button data-htmlkey="faraon">👑 Faraón</button>
+ <button data-htmlkey="sarcófago">⚱️ Sarcófago</button>
+ <button data-htmlkey="jeroglificos">𓂀 Jeroglíficos</button>
+ <button data-htmlkey="dioses">🐺 Dioses</button>
+ <button data-htmlkey="desafio">🏆 Desafío</button>
+ <button data-htmlkey="museo" style="grid-column:1/4">🏛️ Museo arqueológico 3D</button>
+</div>
+<div id="interiorMenu" class="interiorMenu">
+ <button data-part="entrada">🚪 Entrada</button>
+ <button data-part="galeria">↗️ Gran Galería</button>
+ <button data-part="rey">👑 Cámara del Rey</button>
+ <button data-part="reina">🔎 Cámara llamada de la Reina</button>
+ <button id="tourBtn">🎧 Visita narrada</button>
+ <button id="exitInterior">↩️ Volver</button>
+</div>
+
+
+<div id="tourOverlay" class="tourOverlay" aria-hidden="true">
+ <div class="tourTop"><div class="tourBadge">🏺 RECORRIDO 3D · Gran Pirámide</div><button id="tourExit3d" class="tourExit">↩ Volver a RA</button></div>
+ <div id="tourStage" class="tourStage">
+  <div class="tunnel"><div class="wall left"></div><div class="wall right"></div><div class="wall floor"></div><div class="wall ceiling"></div><div class="endWall"></div><div class="torchGlow"></div></div>
+ </div>
+ <div class="tourCard"><h2 id="tourTitle3d">🚪 Entrada y pasaje</h2><p id="tourText3d"></p><div class="tourActions"><button id="tourSpeak3d">🔊 Escuchar</button><button id="tourNext3d" class="secondary">Avanzar →</button></div></div>
+</div>
+
+<a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart:true; uiScanning:yes;"
+ color-space="sRGB" renderer="colorManagement:true; physicallyCorrectLights:true"
+ vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled:false">
+<a-assets></a-assets>
+<a-camera position="0 0 0" look-controls="enabled:false" cursor="fuse:false; rayOrigin:mouse"
+ raycaster="far:10000; objects:.clickable; interval:50"></a-camera>
+<a-entity light="type:ambient; intensity:1.25"></a-entity>
+<a-entity light="type:directional; intensity:1.3" position="-1 2 1"></a-entity>
+
+<a-entity mindar-image-target="targetIndex:0" id="target">
+
+<!-- Pirámide RA v4: cursos de piedra, base arenosa y entrada más arqueológica -->
+<a-entity id="pyramidGroup" position="0 0.03 0.08" class="clickable" data-key="piramide">
+ <a-circle radius="0.37" rotation="-90 0 0" position="0 -0.18 0" color="#b8955f" roughness="1"></a-circle>
+ <a-cone radius-bottom="0.285" radius-top="0" height="0.36" segments-radial="4" rotation="0 45 0" color="#b99a67" roughness="1"></a-cone>
+ <!-- hiladas visibles: dan sensación de bloques sin cargar modelos pesados -->
+ <a-ring radius-inner="0.244" radius-outer="0.249" theta-length="360" rotation="-90 0 0" position="0 -0.125 0" color="#8e724e"></a-ring>
+ <a-ring radius-inner="0.205" radius-outer="0.210" rotation="-90 0 0" position="0 -0.075 0" color="#8e724e"></a-ring>
+ <a-ring radius-inner="0.165" radius-outer="0.170" rotation="-90 0 0" position="0 -0.025 0" color="#8e724e"></a-ring>
+ <a-ring radius-inner="0.126" radius-outer="0.131" rotation="-90 0 0" position="0 0.025 0" color="#8e724e"></a-ring>
+ <a-ring radius-inner="0.086" radius-outer="0.091" rotation="-90 0 0" position="0 0.075 0" color="#8e724e"></a-ring>
+ <a-box position="0 -0.105 0.205" width="0.060" height="0.070" depth="0.035" color="#2b2118" roughness="1"></a-box>
+ <a-box position="0 -0.068 0.205" width="0.078" height="0.012" depth="0.042" rotation="0 0 0" color="#7c6040"></a-box>
+ <a-text value="TOCA PARA INGRESAR" position="0 -0.245 0.03" align="center" width="0.82" color="#fff4d6"></a-text>
+</a-entity>
+
+<!-- Objetos 3D estilizados -->
+<a-entity class="clickable" data-key="faraon" position="-0.37 0.27 0.07">
+ <a-sphere radius="0.065" color="#d8aa3d"></a-sphere>
+ <a-cone radius-bottom="0.08" radius-top="0.045" height="0.13" position="0 -0.10 0" color="#174c70"></a-cone>
+</a-entity>
+<a-text value="FARAON" position="-0.37 0.13 0.08" align="center" width="0.55" color="#fff"></a-text>
+
+<a-entity class="clickable" data-key="sarcófago" position="0.37 0.27 0.07">
+ <a-capsule radius="0.05" height="0.15" color="#c89b36"></a-capsule>
+ <a-ring radius-inner="0.052" radius-outer="0.059" color="#1d5d7b"></a-ring>
+</a-entity>
+<a-text value="SARCOFAGO" position="0.37 0.13 0.08" align="center" width="0.55" color="#fff"></a-text>
+
+<a-entity class="clickable" data-key="jeroglificos" position="-0.37 -0.25 0.07">
+ <a-box width="0.14" height="0.16" depth="0.018" color="#d8bd83"></a-box>
+ <a-text value="𓂀" position="0 0 0.012" align="center" width="0.36" color="#392b1d"></a-text>
+</a-entity>
+<a-text value="JEROGLIFICOS" position="-0.37 -0.37 0.08" align="center" width="0.52" color="#fff"></a-text>
+
+<a-entity class="clickable" data-key="dioses" position="0.37 -0.25 0.07">
+ <a-cone radius-bottom="0.075" radius-top="0.035" height="0.14" color="#20252a"></a-cone>
+ <a-sphere radius="0.045" position="0 0.09 0" color="#1e2225"></a-sphere>
+ <a-cone radius-bottom="0.022" radius-top="0" height="0.08" position="-0.025 0.15 0" color="#1e2225"></a-cone>
+ <a-cone radius-bottom="0.022" radius-top="0" height="0.08" position="0.025 0.15 0" color="#1e2225"></a-cone>
+</a-entity>
+<a-text value="DIOSES" position="0.37 -0.37 0.08" align="center" width="0.52" color="#fff"></a-text>
+
+<a-box class="clickable" data-key="desafio" position="0 -0.41 0.08" width="0.46" height="0.12" depth="0.025" color="#67539a"></a-box>
+<a-text value="DESAFIO DEL ARQUEOLOGO" position="0 -0.425 0.10" align="center" width="0.70" color="#fff"></a-text>
+
+<!-- Interior interactivo, oculto al inicio -->
+<a-entity id="interior" visible="false" position="0 0 0.14">
+ <a-plane width="0.65" height="0.55" color="#2a2118" opacity="0.93"></a-plane>
+ <a-triangle vertex-a="0 0.24 0.02" vertex-b="-0.28 -0.20 0.02" vertex-c="0.28 -0.20 0.02"
+  color="#b7894c" opacity="0.42"></a-triangle>
+ <a-box position="0 -0.16 0.035" width="0.06" height="0.035" depth="0.02" color="#e8c56f"></a-box>
+ <a-text value="ENTRADA" class="clickable" data-key="entrada" position="0 -0.22 0.05" align="center" width="0.45" color="#fff"></a-text>
+ <a-box position="-0.05 0.01 0.035" width="0.03" height="0.25" depth="0.018" rotation="0 0 -22" color="#e8c56f"></a-box>
+ <a-text value="GRAN GALERIA" class="clickable" data-key="galeria" position="-0.18 0.02 0.05" align="center" width="0.38" color="#fff"></a-text>
+ <a-box position="0.08 0.09 0.035" width="0.11" height="0.055" depth="0.02" color="#e8c56f"></a-box>
+ <a-text value="CAMARA DEL REY" class="clickable" data-key="rey" position="0.18 0.13 0.05" align="center" width="0.40" color="#fff"></a-text>
+ <a-box position="0.02 -0.055 0.035" width="0.10" height="0.05" depth="0.02" color="#d7b766"></a-box>
+ <a-text value="CAMARA LLAMADA DE LA REINA" class="clickable" data-key="reina" position="0.17 -0.07 0.05" align="center" width="0.42" color="#fff"></a-text>
+ <a-box class="clickable" data-key="cerrarInterior" position="0.26 0.22 0.05" width="0.09" height="0.07" depth="0.02" color="#7c342d"></a-box>
+ <a-text value="X" position="0.26 0.205 0.07" align="center" width="0.30" color="#fff"></a-text>
+</a-entity>
+
+</a-entity>
+</a-scene>
+
+<script>
+const panel=document.querySelector('#panel'),title=document.querySelector('#ptitle'),body=document.querySelector('#pbody'),
+status=document.querySelector('#status'), interior=document.querySelector('#interior'), pyramid=document.querySelector('#pyramidGroup');
+let lastNarration='', audioCtx=null, ambientNodes=[], ambientOn=false, targetVisible=false;
+
+const sections={
+faraon:{title:'👑 El faraón',text:'El faraón era el gobernante de Egipto. Tenía funciones políticas y religiosas y ocupaba la cima de la organización del Estado.',html:`<p>El <b>faraón</b> era el gobernante de Egipto. Tenía funciones políticas y religiosas y ocupaba la cima de la organización del Estado.</p><p><b>Observá el objeto 3D:</b> sus colores recuerdan algunos de los símbolos asociados con la realeza egipcia.</p>`},
+'sarcófago':{title:'⚱️ Sarcófago y mundo funerario',text:'Los sarcófagos protegían el cuerpo del difunto y podían llevar inscripciones y decoraciones. Estas prácticas se relacionaban con las creencias egipcias sobre la vida después de la muerte.',html:`<p>Los <b>sarcófagos</b> protegían el cuerpo del difunto y podían llevar inscripciones y decoraciones.</p><p>La momificación y los rituales funerarios estaban relacionados con las creencias sobre la vida después de la muerte.</p>`},
+jeroglificos:{title:'𓂀 Jeroglíficos',text:'La escritura jeroglífica utilizaba signos. Algunos representaban sonidos y otros podían representar palabras o ideas.',html:`<p>La escritura <b>jeroglífica</b> utilizaba signos. Algunos representaban sonidos y otros podían representar palabras o ideas.</p><p><b>Misión:</b> buscá tres signos diferentes en la lámina y comparalos.</p>`},
+dioses:{title:'🐺 Dioses egipcios',text:'La religión egipcia era politeísta. Anubis estaba vinculado con los ritos funerarios, Ra con el Sol y Osiris con el mundo de los muertos y la renovación.',html:`<p>La religión egipcia era <b>politeísta</b>: se rendía culto a numerosos dioses y diosas.</p><p><b>Anubis</b>: ritos funerarios. <b>Ra</b>: asociado con el Sol. <b>Osiris</b>: relacionado con el mundo de los muertos y la renovación.</p>`},
+entrada:{title:'🚪 Entrada',text:'La entrada daba acceso a los pasajes interiores de la Gran Pirámide.',html:'<p>La <b>entrada</b> daba acceso a los pasajes interiores de la Gran Pirámide.</p>'},
+galeria:{title:'↗️ Gran Galería',text:'La Gran Galería es un corredor alto e inclinado que forma parte del sistema de pasajes internos.',html:'<p>La <b>Gran Galería</b> es un corredor alto e inclinado que forma parte del sistema de pasajes internos.</p>'},
+rey:{title:'👑 Cámara del Rey',text:'La Cámara del Rey se encuentra en el interior de la Gran Pirámide y contiene un sarcófago de granito.',html:'<p>La llamada <b>Cámara del Rey</b> se encuentra en el interior de la Gran Pirámide y contiene un sarcófago de granito.</p>'},
+reina:{title:'🔎 Cámara llamada de la Reina',text:'Esta cámara recibe tradicionalmente el nombre de Cámara de la Reina, aunque el nombre no significa que allí fuera enterrada una reina.',html:'<p>Esta cámara recibe tradicionalmente el nombre de <b>Cámara de la Reina</b>, aunque ese nombre no significa que allí fuera enterrada una reina.</p>'}
+};
+function hideMenus(){arMenu.style.display='none';interiorMenu.style.display='none';}
+function restoreMenu(){if(!targetVisible)return; if(interior.getAttribute('visible')) interiorMenu.style.display='grid'; else arMenu.style.display='grid';}
+function openPanel(){hideMenus();collapseAudio();panel.style.display='block';panel.scrollTop=0;}
+function closePanel(){panel.style.display='none';speechSynthesis?.cancel();collapseAudio();restoreMenu();}
+function showSection(k){const s=sections[k];title.textContent=s.title;body.innerHTML=s.html+`<button class="action" id="speakHere">🔊 Escuchar narración</button>`;openPanel();lastNarration=s.text;document.querySelector('#speakHere').addEventListener('click',()=>speak(lastNarration));}
+function speak(t){if(!('speechSynthesis'in window))return; speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t);u.lang='es-AR';u.rate=.92;speechSynthesis.speak(u);}
+document.querySelector('#narrateBtn').addEventListener('click',()=>{if(lastNarration)speak(lastNarration);else speak('Bienvenidos a Misión Egipto. Apuntá a la lámina y tocá los símbolos para explorar.');autoCollapseAudio();});
+document.querySelector('#close').addEventListener('click',closePanel);
+
+const arMenu=document.querySelector('#arMenu'), interiorMenu=document.querySelector('#interiorMenu');
+function toggleInterior(on){
+ panel.style.display='none'; collapseAudio();
+ interior.setAttribute('visible',on); pyramid.setAttribute('visible',!on);
+ arMenu.style.display=on?'none':'grid'; interiorMenu.style.display=on?'grid':'none';
+ if(on){status.textContent='Vista interior: elegí una parte';lastNarration='Bienvenidos al interior de la Gran Pirámide. Elegí una parte para comenzar la visita.';speak(lastNarration);}
+ else{status.textContent='¡Egipto encontrado! Elegí una opción';speechSynthesis?.cancel();}
+}
+
+
+function openMuseum(){collapseAudio();
+ title.textContent='🏛️ Museo arqueológico 3D';
+ body.innerHTML=`<p>Explorá modelos tridimensionales de piezas arqueológicas reales. Podés girarlos y acercarlos con el dedo.</p>
+ <h3>Estatua de Minnefer — Reino Antiguo</h3>
+ <iframe class="museumFrame" title="Estatua de Minnefer" allow="autoplay; fullscreen; xr-spatial-tracking"
+ src="https://sketchfab.com/models/5697bb6a10c04f9c9eda558a3d125527/embed?autostart=0&ui_theme=dark"></iframe>
+ <p class="credit">Modelo 3D: Cleveland Museum of Art, Open Access / CC0.</p>
+ <h3>Vaso canopo con cabeza de halcón — Dinastía 26</h3>
+ <iframe class="museumFrame" title="Vaso canopo" allow="autoplay; fullscreen; xr-spatial-tracking"
+ src="https://sketchfab.com/models/3c723241b22d4a208472cad3a83ac831/embed?autostart=0&ui_theme=dark"></iframe>
+ <p class="credit">Modelo 3D: Cleveland Museum of Art, Open Access / CC0.</p>`;
+ openPanel();
+ lastNarration='Estás en el museo arqueológico 3D. Estos modelos representan piezas reales conservadas en colecciones de museo.';
+}
+document.querySelectorAll('[data-htmlkey]').forEach(b=>b.addEventListener('click',()=>{
+ const k=b.dataset.htmlkey;
+ if(k==='piramide')enterTour3D(); else if(k==='desafio')startQuiz(); else if(k==='museo')openMuseum(); else showSection(k);
+}));
+document.querySelectorAll('[data-part]').forEach(b=>b.addEventListener('click',()=>{
+ const k=b.dataset.part; showSection(k); setTimeout(()=>speak(sections[k].text),120);
+}));
+document.querySelector('#exitInterior').addEventListener('click',()=>toggleInterior(false));
+
+const tourOrder=['entrada','galeria','reina','rey']; let tourStop=false;
+document.querySelector('#tourBtn').addEventListener('click',async()=>{
+ tourStop=false;
+ for(const k of tourOrder){
+   if(tourStop)break;
+   showSection(k);
+   await new Promise(resolve=>{
+     speechSynthesis.cancel();
+     const u=new SpeechSynthesisUtterance(sections[k].text);u.lang='es-AR';u.rate=.88;u.onend=()=>setTimeout(resolve,500);u.onerror=resolve;
+     speechSynthesis.speak(u);
+   });
+ }
+});
+
+function bindClicks(){
+ document.querySelectorAll('.clickable').forEach(el=>el.addEventListener('click',()=>{
+  const k=el.dataset.key;
+  if(k==='piramide')enterTour3D();
+  else if(k==='cerrarInterior')toggleInterior(false);
+  else if(k==='desafio')startQuiz();
+  else if(sections[k])showSection(k);
+ }));
+}
+bindClicks();
+
+/* Ambiente generado en el navegador: viento suave + pulsos graves, sin archivos externos. */
+
+const audioToggle=document.querySelector('#audioToggle');
+const audioExpanded=document.querySelector('#audioExpanded');
+let audioHideTimer=null;
+function collapseAudio(){
+ audioExpanded.classList.remove('open');
+ audioToggle.textContent='🎧';
+}
+function expandAudio(){
+ audioExpanded.classList.add('open');
+ audioToggle.textContent='✕';
+ clearTimeout(audioHideTimer);
+ audioHideTimer=setTimeout(collapseAudio,5000);
+}
+audioToggle.addEventListener('click',()=>{
+ if(audioExpanded.classList.contains('open')) collapseAudio(); else expandAudio();
+});
+function autoCollapseAudio(){
+ clearTimeout(audioHideTimer);
+ audioHideTimer=setTimeout(collapseAudio,900);
+}
+
+document.querySelector('#soundBtn').addEventListener('click',async()=>{
+ const btn=document.querySelector('#soundBtn');
+ if(ambientOn){ambientNodes.forEach(n=>{try{n.stop?.();n.disconnect?.()}catch(e){}});ambientNodes=[];ambientOn=false;btn.textContent='🔇';autoCollapseAudio();return;}
+ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); await audioCtx.resume();
+ const gain=audioCtx.createGain();gain.gain.value=.025;gain.connect(audioCtx.destination);
+ const buffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate);
+ const d=buffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.35;
+ const noise=audioCtx.createBufferSource();noise.buffer=buffer;noise.loop=true;
+ const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=520;
+ noise.connect(filter);filter.connect(gain);noise.start();
+ const osc=audioCtx.createOscillator(),og=audioCtx.createGain();osc.type='sine';osc.frequency.value=73;og.gain.value=.012;osc.connect(og);og.connect(audioCtx.destination);osc.start();
+ ambientNodes=[noise,osc,gain,filter,og];ambientOn=true;btn.textContent='🔉';autoCollapseAudio();
+});
+
+const questions=[
+{q:'1. ¿Cuál era una función principal de las grandes pirámides?',a:['Ser mercados','Servir como monumentos funerarios reales','Ser puertos'],c:1},
+{q:'2. ¿Quién estaba en la cima de la organización política egipcia?',a:['El campesino','El artesano','El faraón'],c:2},
+{q:'3. ¿Para qué servía un sarcófago?',a:['Para proteger el cuerpo del difunto','Para navegar por el Nilo','Para guardar alimentos'],c:0},
+{q:'4. ¿Qué eran los jeroglíficos?',a:['Una herramienta agrícola','Un sistema de escritura','Una moneda'],c:1},
+{q:'5. ¿Con qué estaba relacionado Anubis?',a:['La agricultura','La navegación','Los ritos funerarios'],c:2},
+{q:'6. ¿Qué río fue fundamental para la civilización egipcia?',a:['Éufrates','Nilo','Tigris'],c:1},
+{q:'7. ¿Cómo se llama el corredor alto e inclinado de la Gran Pirámide?',a:['Gran Galería','Patio Real','Avenida Sagrada'],c:0},
+{q:'8. ¿Qué característica tenía la religión egipcia?',a:['No tenía dioses','Era monoteísta en toda su historia','Rendía culto a numerosos dioses'],c:2},
+{q:'9. ¿Con qué astro se asociaba principalmente Ra?',a:['La Luna','El Sol','Venus'],c:1},
+{q:'10. ¿Qué proceso se relacionaba con la conservación del cuerpo?',a:['Momificación','Irrigación','Escritura'],c:0}
+];
+let quiz=[],qi=0,score=0;
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function startQuiz(){hideMenus();collapseAudio();quiz=shuffle(questions).slice(0,5);qi=0;score=0;renderQuestion();}
+function renderQuestion(){
+ title.textContent='🏆 Desafío del arqueólogo';
+ if(qi>=quiz.length){body.innerHTML=`<p><b>¡Misión terminada!</b></p><p>Obtuviste <b>${score} de ${quiz.length}</b>.</p><button class="action" id="again">🔄 Jugar otra vez</button>`;openPanel();lastNarration=`Misión terminada. Obtuviste ${score} de ${quiz.length} respuestas correctas.`;document.querySelector('#again').addEventListener('click',startQuiz);return;}
+ const x=quiz[qi];
+ // También se mezcla el orden visible de respuestas conservando cuál es la correcta.
+ const opts=x.a.map((v,i)=>({v,ok:i===x.c})); const mixed=shuffle(opts);
+ body.innerHTML=`<p><b>Pregunta ${qi+1} de ${quiz.length}</b></p><p>${x.q.replace(/^\d+\.\s*/,'')}</p><div class="quiz">${mixed.map((o,i)=>`<button data-i="${i}" data-ok="${o.ok}">${o.v}</button>`).join('')}</div><div id="feedback" class="feedback"></div>`;
+ openPanel();lastNarration=x.q;
+ body.querySelectorAll('[data-i]').forEach(btn=>btn.addEventListener('click',()=>{
+  const ok=btn.dataset.ok==='true',fb=document.querySelector('#feedback');body.querySelectorAll('[data-i]').forEach(b=>b.disabled=true);
+  if(ok){score++;btn.classList.add('correct');fb.textContent='✓ ¡Correcto!';}
+  else{btn.classList.add('wrong');body.querySelector('[data-ok="true"]').classList.add('correct');fb.textContent='Revisá la respuesta marcada en verde.';}
+  setTimeout(()=>{qi++;renderQuestion()},1200);
+ }));
+}
+
+/* Recorrido 3D inmersivo — bosquejo funcional para probar en celular. */
+const tourStops3d=[
+ {title:'🚪 Entrada y pasaje descendente', text:'Estás entrando en la Gran Pirámide. Los pasajes son estrechos y fueron construidos dentro de una enorme masa de piedra. Desde aquí comienza una red de corredores y cámaras.'},
+ {title:'↗️ Pasaje ascendente y Gran Galería', text:'El recorrido asciende hasta la Gran Galería, un corredor alto e inclinado. Su escala contrasta con los pasajes estrechos que acabás de atravesar.'},
+ {title:'🔎 Cámara llamada de la Reina', text:'Esta sala recibe tradicionalmente el nombre de Cámara de la Reina. El nombre es moderno y no demuestra que una reina haya sido enterrada aquí. Su función exacta continúa siendo estudiada.'},
+ {title:'👑 Antecámara y Cámara del Rey', text:'La Cámara del Rey está construida con grandes bloques de granito y contiene un sarcófago de granito. Es uno de los espacios más conocidos del interior de la Gran Pirámide.'},
+ {title:'🧭 Mirada final', text:'Acabás de recorrer algunos de los principales espacios internos. La pirámide no es maciza por completo: corredores y cámaras forman un complejo sistema dentro de la estructura.'}
+];
+let tour3dIndex=0;
+const tourOverlay=document.querySelector('#tourOverlay'),tourStage=document.querySelector('#tourStage'),tourTitle3d=document.querySelector('#tourTitle3d'),tourText3d=document.querySelector('#tourText3d');
+function renderTour3D(){const x=tourStops3d[tour3dIndex];tourTitle3d.textContent=x.title;tourText3d.textContent=x.text;document.querySelector('#tourNext3d').textContent=tour3dIndex===tourStops3d.length-1?'Finalizar ✓':'Avanzar →';lastNarration=x.text;}
+function enterTour3D(){hideMenus();panel.style.display='none';speechSynthesis?.cancel();tour3dIndex=0;renderTour3D();tourOverlay.classList.add('open');tourOverlay.setAttribute('aria-hidden','false');status.style.display='none';setTimeout(()=>speak(tourStops3d[0].text),350);}
+function exitTour3D(){speechSynthesis?.cancel();tourOverlay.classList.remove('open');tourOverlay.setAttribute('aria-hidden','true');status.style.display='';restoreMenu();}
+document.querySelector('#tourExit3d').addEventListener('click',exitTour3D);
+document.querySelector('#tourSpeak3d').addEventListener('click',()=>speak(tourStops3d[tour3dIndex].text));
+document.querySelector('#tourNext3d').addEventListener('click',()=>{if(tour3dIndex>=tourStops3d.length-1){exitTour3D();return;}tourStage.classList.remove('moving');void tourStage.offsetWidth;tourStage.classList.add('moving');tour3dIndex++;setTimeout(()=>{renderTour3D();speak(tourStops3d[tour3dIndex].text)},700);});
+
+const target=document.querySelector('#target');
+target.addEventListener('targetFound',()=>{targetVisible=true;status.textContent='¡Egipto encontrado! Elegí una opción'; if(panel.style.display==='block') return; restoreMenu();});
+target.addEventListener('targetLost',()=>{targetVisible=false;status.textContent='Volvé a apuntar a la lámina de Egipto'; hideMenus();});
+</script>
+</body>
+</html>
