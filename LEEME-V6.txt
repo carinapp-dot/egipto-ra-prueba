@@ -1,0 +1,12 @@
+MISIÓN EGIPTO V6 — PRUEBA VISUAL
+
+CAMBIOS:
+- Pirámide RA con lectura escalonada de bloques, base desértica y entrada oscura.
+- Entrada cinematográfica al interior.
+- Recorrido 3D con viñeta, iluminación cálida y cursos de piedra.
+- Indicador de progreso 1/4 a 4/4.
+- Narración automática al llegar a cada espacio.
+- Movimiento de la luz durante el avance.
+- Se conserva targets.mind y la misma lámina de RA.
+
+Subir estos archivos a egipto-ra-prueba. No reemplazar egipto-ra original.
