@@ -1,9 +1,0 @@
-MISIÓN EGIPTO V7 — PRIMERA BASE REAL
-
-- La pirámide exterior ya es un archivo GLB propio, compuesto por cientos de bloques de piedra.
-- Se mantiene MindAR y targets.mind.
-- “Insignias reales” y “Anubis y dioses” abren el nuevo museo táctil.
-- En inspección: arrastrar gira; pellizcar amplía/reduce; Restablecer devuelve el objeto.
-- Las piezas del museo todavía usan iconos provisionales: la arquitectura táctil está lista para recibir los GLB arqueológicos definitivos.
-- El recorrido interior V5 se conserva mientras se reemplaza por el interior realista.
-- Probar SOLO en egipto-ra-prueba.
