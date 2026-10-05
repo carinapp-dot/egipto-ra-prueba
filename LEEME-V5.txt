@@ -1,0 +1,11 @@
+MISIÓN EGIPTO V5 — PROTOTIPO RA + INMERSIÓN 3D
+
+1. Subir index.html, targets.mind y los archivos LEEME al repositorio egipto-ra-prueba.
+2. Reemplazar el index.html anterior de PRUEBA, no el repositorio original.
+3. Abrir la URL de GitHub Pages desde el celular.
+4. Apuntar a la misma lámina.
+5. Tocar “Pirámide / Entrar 3D”.
+6. En el interior: arrastrar con el dedo para mirar; usar Anterior/Avanzar; Escuchar reproduce la narración.
+7. “RA” vuelve a la experiencia de realidad aumentada.
+
+Este V5 usa Three.js/WebGL para el interior 3D y mantiene MindAR para la RA.
