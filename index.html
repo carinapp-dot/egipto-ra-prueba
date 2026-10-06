@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Misión Egipto V8 — Expedición 3D Real</title>
+
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif;background:#17100a}
+.hud{position:fixed;z-index:20;left:8px;right:8px;top:8px;text-align:center;pointer-events:none}
+.msg{display:inline-block;background:#fff8e8ee;color:#382510;padding:9px 13px;border-radius:14px;font-weight:700;box-shadow:0 2px 10px #0004}
+.controls{position:fixed;z-index:31;right:10px;top:58px;display:flex;gap:7px;flex-direction:column}
+.ctrl{border:1px solid #d3ad62;background:#fff8e8ee;color:#33230f;border-radius:50%;width:44px;height:44px;font-size:20px}
+.panel{position:fixed;z-index:60;left:10px;right:10px;bottom:10px;max-height:61%;overflow:auto;background:#fffdf4f5;color:#2e2418;border:2px solid #d3ad62;border-radius:18px;padding:14px;box-shadow:0 5px 22px #0006;display:none}
+.panel h2{font-size:20px;margin:0 42px 8px 0}.panel h3{font-size:16px;margin:12px 0 5px}.panel p{font-size:15px;line-height:1.42;margin:7px 0}
+.close{position:absolute;right:10px;top:9px;border:0;background:#17324d;color:white;border-radius:10px;padding:8px 10px;font-weight:bold}
+.action,.quiz button{display:block;width:100%;margin:7px 0;border:1px solid #b28b48;background:#fff7df;border-radius:11px;padding:11px;text-align:left;font-size:15px}
+.quiz button.correct{background:#dff4df}.quiz button.wrong{background:#f8dddd}.feedback{font-weight:bold;margin-top:8px}.small{font-size:12px;color:#6b583e}
+
+.arMenu{position:fixed;z-index:40;left:8px;right:8px;bottom:8px;display:none;grid-template-columns:repeat(3,1fr);gap:7px}
+.arMenu button{min-height:48px;border:1px solid #d3ad62;border-radius:13px;background:#fff8e8f2;color:#30200d;font-weight:700;font-size:13px;box-shadow:0 2px 9px #0005;padding:7px}
+.arMenu button:active{transform:scale(.97)}
+.interiorMenu{position:fixed;z-index:42;left:8px;right:8px;bottom:8px;display:none;grid-template-columns:repeat(2,1fr);gap:7px}
+.interiorMenu button{min-height:50px;border:1px solid #e3c77d;border-radius:13px;background:#231b14ee;color:#fff;font-weight:700;font-size:13px;padding:8px}
+.museumFrame{width:100%;height:310px;border:0;border-radius:12px;background:#eee}
+.credit{font-size:11px;color:#6b583e;line-height:1.3}
+
+#audioExpanded.open{display:flex!important}
+.controls.compact{opacity:.72}
+.panel.audio-open{right:62px}
+
+/* VERSIÓN VERTICAL PARA CELULAR */
+@media (orientation: portrait), (max-width: 700px){
+  .hud{left:6px;right:6px;top:6px}
+  .msg{font-size:13px;padding:7px 10px;max-width:78%}
+  .controls{right:7px;top:50px}
+  .ctrl{width:38px;height:38px;font-size:17px}
+
+  /* Panel ocupa la pantalla de forma vertical sin tapar controles esenciales */
+  .panel{
+    left:6px;right:6px;bottom:6px;
+    top:64px; bottom:10px;
+    max-height:none;
+    padding:12px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    border-radius:15px;
+  }
+  .panel h2{font-size:18px;margin-right:38px}
+  .panel p{font-size:14px}
+  .close{padding:7px 9px}
+
+  /* Menú principal vertical: dos columnas grandes */
+  .arMenu{
+    left:6px;right:6px;bottom:6px;
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .arMenu button{
+    min-height:46px;
+    font-size:12px;
+    padding:6px;
+  }
+  .arMenu button[data-htmlkey="museo"]{grid-column:1/3!important}
+
+  /* Interior vertical y cómodo */
+  .interiorMenu{
+    left:6px;right:6px;bottom:6px;
+    grid-template-columns:repeat(2,1fr);
+    gap:6px;
+  }
+  .interiorMenu button{min-height:46px;font-size:12px;padding:6px}
+
+  /* Modelos arqueológicos: visor vertical, sin corte lateral */
+  .museumFrame{
+    width:100%;
+    height:46vh;
+    min-height:330px;
+    max-height:500px;
+    display:block;
+    border-radius:12px;
+  }
+
+  .quiz button,.action{font-size:14px;padding:10px}
+}
+
+/* La cámara/escena siempre llena la pantalla sin deformarse */
+a-scene,.a-canvas{
+  width:100vw!important;
+  height:100vh!important;
+  max-width:100vw!important;
+  overflow:hidden!important;
+}
+video{
+  width:100vw!important;
+  height:100vh!important;
+  object-fit:cover!important;
+}
+
+
+/* INMERSIÓN 3D V5 */
+#immersive3d{position:fixed;inset:0;z-index:100;display:none;background:#080706;color:#fff;overflow:hidden}
+#immersiveCanvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#immTop{position:absolute;left:10px;right:10px;top:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+#immTitle{background:#16120ddd;border:1px solid #b8965d;padding:9px 12px;border-radius:13px;font-weight:800;max-width:72%;box-shadow:0 3px 16px #0008}
+#immExit{pointer-events:auto;border:1px solid #c5a46b;background:#201910e8;color:#fff;border-radius:12px;padding:10px 12px;font-weight:800}
+#immInfo{position:absolute;left:10px;right:10px;bottom:82px;background:#17120eea;border:1px solid #b8965d;border-radius:15px;padding:12px;box-shadow:0 4px 20px #0009}
+#immInfo p{margin:0;font-size:14px;line-height:1.4}
+@media (max-width:700px){#immInfo{left:12px;right:12px;bottom:76px;padding:10px;max-height:24vh;overflow:auto}#immInfo p{font-size:13px;line-height:1.32}#immControls{left:12px;right:12px;bottom:10px}#immControls button{min-height:48px;font-size:12px}#immHint{top:62px;font-size:11px}#immTitle{font-size:14px;max-width:68%}}
+#immControls{position:absolute;left:10px;right:10px;bottom:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+#immControls button{min-height:54px;border:1px solid #c6a76f;background:#211a13e8;color:#fff;border-radius:13px;font-weight:800;font-size:13px}
+#immControls button:disabled{opacity:.35}
+#immHint{position:absolute;top:58px;left:50%;transform:translateX(-50%);background:#0009;padding:7px 10px;border-radius:12px;font-size:12px;white-space:nowrap;opacity:.9}
+
+
+#royalMuseum{position:fixed;inset:0;z-index:120;display:none;background:linear-gradient(#0d0a07ee,#181008f5);color:#fff;overflow:auto;padding:18px 12px 28px}
+#royalMuseum h2{margin:6px 0 3px;text-align:center;color:#e0bd78}
+#royalMuseum .sub{font-size:13px;text-align:center;color:#d8c6a7;margin-bottom:14px}
+#artifactGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;max-width:760px;margin:auto}
+.artifact{border:1px solid #a9854f;background:#21170fcf;border-radius:15px;padding:11px;text-align:left;min-height:105px}
+.artifact b{display:block;color:#f0cc86;margin-bottom:5px;font-size:14px}.artifact span{font-size:12px;line-height:1.35;color:#eee}
+#inspectStage{display:none;position:fixed;inset:0;z-index:130;background:#090705f5;color:white}
+#inspectObj{position:absolute;left:50%;top:43%;transform:translate(-50%,-50%);width:190px;height:250px;display:flex;align-items:center;justify-content:center;font-size:92px;touch-action:none;filter:drop-shadow(0 14px 16px #000)}
+#inspectCard{position:absolute;left:12px;right:12px;bottom:12px;background:#1b130de8;border:1px solid #b59057;border-radius:15px;padding:12px}
+#inspectCard h3{margin:0 0 5px;color:#efc978}#inspectCard p{font-size:13px;line-height:1.4;margin:4px 0}
+.inspectBtns{display:flex;gap:7px;margin-top:8px}.inspectBtns button,#museumClose{flex:1;padding:10px;border-radius:11px;border:1px solid #c49c60;background:#2b1d12;color:white;font-weight:800}
+#museumClose{position:sticky;top:4px;float:right;z-index:2;width:auto}
+
+
+/* V8 · portal táctil sin RA */
+#expeditionHome{position:fixed;inset:0;z-index:10;overflow:auto;background:linear-gradient(#0b0907aa,#0b0907dd),url('https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?auto=format&fit=crop&w=1600&q=80') center/cover;color:#fff;padding:72px 12px 150px;box-sizing:border-box}
+.heroV8{max-width:780px;margin:auto;text-align:center}.heroV8 h1{margin:0;color:#f0cc82;font-size:28px}.heroV8 p{line-height:1.45;color:#f4ead9}.portalGrid{max-width:780px;margin:14px auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.portal{border:1px solid #c9a05e;background:#1b140ddd;border-radius:16px;padding:14px;color:#fff;min-height:138px;text-align:left;box-shadow:0 5px 18px #0008}.portal b{display:block;color:#f1cc83;font-size:16px;margin-bottom:6px}.portal span{font-size:13px;line-height:1.35;display:block}.portal em{display:block;font-style:normal;margin-top:9px;font-weight:800;color:#fff}.portalWide{grid-column:1/3}.sourceNote{font-size:11px!important;color:#cdbd9f!important;margin-top:7px}.missionBox{background:#f7edda;color:#2e2418;border-radius:14px;padding:12px;margin:10px 0;border:1px solid #d3ad62}.travelBtn{display:block;width:100%;box-sizing:border-box;text-align:center;text-decoration:none;background:#17324d;color:white!important;border-radius:12px;padding:13px;margin:10px 0;font-weight:800}.returnTip{font-size:12px;color:#6b583e}.v8badge{display:inline-block;background:#e1b75f;color:#23170b;padding:5px 9px;border-radius:99px;font-weight:900;font-size:12px;margin-bottom:8px}@media(max-width:600px){.portalGrid{grid-template-columns:1fr}.portalWide{grid-column:auto}.portal{min-height:120px}.heroV8 h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="hud"><div id="status" class="msg">V8 · Expedición Egipto 3D Real</div></div>
+<div class="controls" id="audioControls"><button id="audioToggle" class="ctrl" title="Audio">🎧</button><div id="audioExpanded" style="display:none;flex-direction:column;gap:7px"><button id="soundBtn" class="ctrl">🔇</button><button id="narrateBtn" class="ctrl">🔊</button></div></div>
+<div id="panel" class="panel"><button id="close" class="close">✕</button><h2 id="ptitle"></h2><div id="pbody"></div></div>
+<div id="expeditionHome"><div class="heroV8"><span class="v8badge">MISIÓN EGIPTO · V8</span><h1>🏺 Expedición Egipto 3D</h1><p>Ya no necesitás apuntar la cámara. Tocá una expedición, leé la misión y entrá en un sitio arqueológico real. Cuando termines, volvé a esta página para continuar investigando.</p></div><div class="portalGrid">
+<button class="portal" data-exp="khufu"><b>🏜️ 1 · Gran Pirámide de Keops</b><span>Recorré pasajes, Gran Galería y cámaras mediante un escaneo 3D realizado en el lugar.</span><em>ENTRAR A LA MISIÓN →</em></button>
+<button class="portal" data-exp="unas"><b>𓂀 2 · Pirámide de Unas</b><span>Acercate a las paredes y buscá los Textos de las Pirámides escritos en jeroglíficos.</span><em>DESCIFRAR LAS PAREDES →</em></button>
+<button class="portal" data-exp="meresankh"><b>👑 3 · Tumba de Meresankh III</b><span>Observá relieves, pinturas, personajes y escenas del mundo funerario.</span><em>EXPLORAR LA TUMBA →</em></button>
+<button class="portal" data-exp="djoser"><b>🔎 4 · Complejo de Djoser</b><span>Investigá la pirámide escalonada y comparala con la Gran Pirámide.</span><em>VIAJAR A SAQQARA →</em></button>
+<button class="portal" data-exp="faraon"><b>👑 Insignias reales</b><span>Nemes, coronas, uraeus, cayado y otros símbolos del poder faraónico.</span><em>INVESTIGAR →</em></button>
+<button class="portal" data-exp="dioses"><b>🐺 Anubis y dioses</b><span>Explorá símbolos y creencias religiosas del antiguo Egipto.</span><em>INVESTIGAR →</em></button>
+<button class="portal portalWide" data-exp="desafio"><b>🏆 Desafío final del arqueólogo</b><span>Después de las expediciones, comprobá cuánto pudiste descubrir.</span><em>COMENZAR DESAFÍO →</em></button>
+<button class="portal portalWide" data-exp="museo"><b>🏛️ Museo arqueológico 3D</b><span>Manipulá modelos tridimensionales de piezas arqueológicas.</span><em>ABRIR MUSEO →</em></button>
+</div></div>
+<div id="arMenu" style="display:none"></div><div id="interiorMenu" style="display:none"></div>
+<div id="royalMuseum"><button id="museumClose">✕ Cerrar</button><h2>👑 Insignias y símbolos del faraón</h2><div class="sub">Tocá una pieza para aislarla, ampliarla, girarla y descubrir su significado y contexto.</div><div id="artifactGrid"></div></div><div id="inspectStage"><div id="inspectObj"></div><div id="inspectCard"><h3 id="inspectName"></h3><p id="inspectMeaning"></p><p id="inspectCeremony"></p><div class="inspectBtns"><button id="inspectSpeak">🔊 Escuchar</button><button id="inspectReset">↺ Restablecer</button><button id="inspectBack">← Volver</button></div></div></div>
+
+<script>
+const panel=document.querySelector('#panel'),title=document.querySelector('#ptitle'),body=document.querySelector('#pbody'),
+status=document.querySelector('#status');
+let lastNarration='', audioCtx=null, ambientNodes=[], ambientOn=false;
+
+const sections={
+faraon:{title:'👑 El faraón',text:'El faraón era el gobernante de Egipto. Tenía funciones políticas y religiosas y ocupaba la cima de la organización del Estado.',html:`<p>El <b>faraón</b> era el gobernante de Egipto. Tenía funciones políticas y religiosas y ocupaba la cima de la organización del Estado.</p><p><b>Observá el objeto 3D:</b> sus colores recuerdan algunos de los símbolos asociados con la realeza egipcia.</p>`},
+'sarcófago':{title:'⚱️ Sarcófago y mundo funerario',text:'Los sarcófagos protegían el cuerpo del difunto y podían llevar inscripciones y decoraciones. Estas prácticas se relacionaban con las creencias egipcias sobre la vida después de la muerte.',html:`<p>Los <b>sarcófagos</b> protegían el cuerpo del difunto y podían llevar inscripciones y decoraciones.</p><p>La momificación y los rituales funerarios estaban relacionados con las creencias sobre la vida después de la muerte.</p>`},
+jeroglificos:{title:'𓂀 Jeroglíficos',text:'La escritura jeroglífica utilizaba signos. Algunos representaban sonidos y otros podían representar palabras o ideas.',html:`<p>La escritura <b>jeroglífica</b> utilizaba signos. Algunos representaban sonidos y otros podían representar palabras o ideas.</p><p><b>Misión:</b> buscá tres signos diferentes en la lámina y comparalos.</p>`},
+dioses:{title:'🐺 Dioses egipcios',text:'La religión egipcia era politeísta. Anubis estaba vinculado con los ritos funerarios, Ra con el Sol y Osiris con el mundo de los muertos y la renovación.',html:`<p>La religión egipcia era <b>politeísta</b>: se rendía culto a numerosos dioses y diosas.</p><p><b>Anubis</b>: ritos funerarios. <b>Ra</b>: asociado con el Sol. <b>Osiris</b>: relacionado con el mundo de los muertos y la renovación.</p>`},
+entrada:{title:'🚪 Entrada',text:'La entrada daba acceso a los pasajes interiores de la Gran Pirámide.',html:'<p>La <b>entrada</b> daba acceso a los pasajes interiores de la Gran Pirámide.</p>'},
+galeria:{title:'↗️ Gran Galería',text:'La Gran Galería es un corredor alto e inclinado que forma parte del sistema de pasajes internos.',html:'<p>La <b>Gran Galería</b> es un corredor alto e inclinado que forma parte del sistema de pasajes internos.</p>'},
+rey:{title:'👑 Cámara del Rey',text:'La Cámara del Rey se encuentra en el interior de la Gran Pirámide y contiene un sarcófago de granito.',html:'<p>La llamada <b>Cámara del Rey</b> se encuentra en el interior de la Gran Pirámide y contiene un sarcófago de granito.</p>'},
+reina:{title:'🔎 Cámara llamada de la Reina',text:'Esta cámara recibe tradicionalmente el nombre de Cámara de la Reina, aunque el nombre no significa que allí fuera enterrada una reina.',html:'<p>Esta cámara recibe tradicionalmente el nombre de <b>Cámara de la Reina</b>, aunque ese nombre no significa que allí fuera enterrada una reina.</p>'}
+};
+function hideMenus(){}
+function restoreMenu(){}
+function openPanel(){collapseAudio();panel.style.display='block';panel.scrollTop=0;}
+function closePanel(){panel.style.display='none';speechSynthesis?.cancel();collapseAudio();}
+function showSection(k){const x=sections[k];title.textContent=x.title;body.innerHTML=x.html+`<button class="action" id="speakHere">🔊 Escuchar narración</button>`;openPanel();lastNarration=x.text;document.querySelector('#speakHere').onclick=()=>speak(lastNarration);}
+function speak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='es-AR';u.rate=.92;speechSynthesis.speak(u);}
+document.querySelector('#narrateBtn').addEventListener('click',()=>{if(lastNarration)speak(lastNarration);else speak('Bienvenidos a Misión Egipto. Elegí una expedición para comenzar.');autoCollapseAudio();});
+document.querySelector('#close').addEventListener('click',closePanel);
+function openArchaeologyMuseum(){collapseAudio();
+ title.textContent='🏛️ Museo arqueológico 3D';
+ body.innerHTML=`<p>Explorá modelos tridimensionales de piezas arqueológicas reales. Podés girarlos y acercarlos con el dedo.</p>
+ <h3>Estatua de Minnefer — Reino Antiguo</h3>
+ <iframe class="museumFrame" title="Estatua de Minnefer" allow="autoplay; fullscreen; xr-spatial-tracking"
+ src="https://sketchfab.com/models/5697bb6a10c04f9c9eda558a3d125527/embed?autostart=0&ui_theme=dark"></iframe>
+ <p class="credit">Modelo 3D: Cleveland Museum of Art, Open Access / CC0.</p>
+ <h3>Vaso canopo con cabeza de halcón — Dinastía 26</h3>
+ <iframe class="museumFrame" title="Vaso canopo" allow="autoplay; fullscreen; xr-spatial-tracking"
+ src="https://sketchfab.com/models/3c723241b22d4a208472cad3a83ac831/embed?autostart=0&ui_theme=dark"></iframe>
+ <p class="credit">Modelo 3D: Cleveland Museum of Art, Open Access / CC0.</p>`;
+ openPanel();
+ lastNarration='Estás en el museo arqueológico 3D. Estos modelos representan piezas reales conservadas en colecciones de museo.';
+}
+
+
+/* ===== MUSEO TÁCTIL V8: inspección táctil ===== */
+const artifacts=[
+ {key:'nemes',icon:'🟨',name:'Nemes',meaning:'Tocado real de tela a rayas que enmarcaba el rostro y caía sobre los hombros. Identificaba visualmente al rey.',ceremony:'Contexto: aparece en imágenes regias, rituales y funerarias. No era una corona territorial.'},
+ {key:'uraeus',icon:'🐍',name:'Uraeus',meaning:'Cobra erguida colocada en la frente. Expresaba protección divina y poder real.',ceremony:'Contexto: podía acompañar coronas y tocados reales en representaciones ceremoniales y templarias.'},
+ {key:'beard',icon:'🔶',name:'Barba ceremonial',meaning:'Barba postiza asociada a la condición regia y, en determinadas imágenes, a la esfera divina.',ceremony:'Contexto: aparece en representaciones ceremoniales del faraón y en iconografía vinculada a la divinidad.'},
+ {key:'hedjet',icon:'⚪',name:'Hedjet · Corona blanca',meaning:'Corona vinculada al Alto Egipto y a la autoridad del rey sobre esa región.',ceremony:'Contexto: aparece en escenas regias y está documentada en representaciones del festival Sed.'},
+ {key:'deshret',icon:'🔴',name:'Deshret · Corona roja',meaning:'Corona asociada al Bajo Egipto.',ceremony:'Contexto: se representa en escenas de poder real y también en imágenes relacionadas con el festival Sed.'},
+ {key:'pschent',icon:'👑',name:'Pschent · Doble corona',meaning:'Combinaba las coronas blanca y roja y expresaba la autoridad sobre Alto y Bajo Egipto.',ceremony:'Contexto: aparece en iconografía de la realeza y en escenas rituales; existen ejemplos tempranos vinculados al festival Sed.'},
+ {key:'heka',icon:'🪄',name:'Heka · Cayado',meaning:'Insignia real con forma de cayado, símbolo de autoridad y gobierno.',ceremony:'Contexto: aparece junto al flagelo en imágenes de reyes y de Osiris; también en representaciones jubilares.'},
+ {key:'nekhakha',icon:'〰️',name:'Nejej · Flagelo',meaning:'Insignia de poder que suele acompañar al cayado heka.',ceremony:'Contexto: frecuente en imágenes ceremoniales de la realeza y de Osiris.'},
+ {key:'anubis',icon:'🐺',name:'Anubis',meaning:'Divinidad vinculada a la momificación, las necrópolis y la protección de los muertos.',ceremony:'Contexto: su presencia es especialmente importante en prácticas y creencias funerarias, no como insignia que llevara el faraón.'}
+];
+const royalMuseum=document.querySelector('#royalMuseum'),artifactGrid=document.querySelector('#artifactGrid'),
+inspectStage=document.querySelector('#inspectStage'),inspectObj=document.querySelector('#inspectObj'),
+inspectName=document.querySelector('#inspectName'),inspectMeaning=document.querySelector('#inspectMeaning'),
+inspectCeremony=document.querySelector('#inspectCeremony');
+let currentArtifact=null,insScale=1,insRot=0,insX=0,insY=0,startDist=0,lastPX=0,lastPY=0,dragOne=false;
+artifactGrid.innerHTML=artifacts.map((a,i)=>`<button class="artifact" data-ai="${i}"><b>${a.icon} ${a.name}</b><span>${a.meaning}</span></button>`).join('');
+function openRoyalMuseum(){panel.style.display='none';hideMenus();collapseAudio();royalMuseum.style.display='block';}
+function closeMuseum(){royalMuseum.style.display='none';restoreMenu();}
+function renderInspect(){inspectObj.style.transform=`translate(calc(-50% + ${insX}px),calc(-50% + ${insY}px)) rotate(${insRot}deg) scale(${insScale})`;}
+function inspectArtifact(a){currentArtifact=a;royalMuseum.style.display='none';inspectStage.style.display='block';inspectObj.textContent=a.icon;inspectName.textContent=a.name;inspectMeaning.textContent=a.meaning;inspectCeremony.textContent=a.ceremony;insScale=1;insRot=0;insX=0;insY=0;renderInspect();}
+artifactGrid.addEventListener('click',e=>{let b=e.target.closest('[data-ai]');if(b)inspectArtifact(artifacts[+b.dataset.ai]);});
+document.querySelector('#museumClose').onclick=closeMuseum;
+document.querySelector('#inspectBack').onclick=()=>{inspectStage.style.display='none';royalMuseum.style.display='block';};
+document.querySelector('#inspectReset').onclick=()=>{insScale=1;insRot=0;insX=0;insY=0;renderInspect();};
+document.querySelector('#inspectSpeak').onclick=()=>currentArtifact&&speak(currentArtifact.meaning+' '+currentArtifact.ceremony);
+inspectObj.addEventListener('pointerdown',e=>{dragOne=true;lastPX=e.clientX;lastPY=e.clientY;inspectObj.setPointerCapture?.(e.pointerId);});
+inspectObj.addEventListener('pointermove',e=>{if(!dragOne)return;let dx=e.clientX-lastPX,dy=e.clientY-lastPY;insRot+=dx*.7;insY+=dy*.25;lastPX=e.clientX;lastPY=e.clientY;renderInspect();});
+inspectObj.addEventListener('pointerup',()=>dragOne=false);
+inspectObj.addEventListener('wheel',e=>{e.preventDefault();insScale=Math.max(.6,Math.min(2.4,insScale+(e.deltaY<0?.12:-.12)));renderInspect();},{passive:false});
+let touches=[];
+inspectObj.addEventListener('touchstart',e=>{touches=[...e.touches];if(touches.length===2)startDist=Math.hypot(touches[0].clientX-touches[1].clientX,touches[0].clientY-touches[1].clientY);},{passive:false});
+inspectObj.addEventListener('touchmove',e=>{if(e.touches.length===2){e.preventDefault();let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(startDist){insScale=Math.max(.6,Math.min(2.4,insScale*d/startDist));startDist=d;renderInspect();}}},{passive:false});
+
+/* ===== RECORRIDO 3D WEBGL: prototipo V5 ===== */
+
+
+const expeditions={
+ khufu:{title:'🏜️ Expedición 1 · Gran Pirámide de Keops',narr:'Vas a entrar en un escaneo tridimensional del interior de la Gran Pirámide. Observá cómo cambian la altura, la inclinación y el ancho de los pasajes.',mission:'Durante el recorrido localizá la Gran Galería y las cámaras llamadas del Rey y de la Reina. ¿Qué diferencias encontrás entre esos espacios?',url:'https://mused.com/tr/tours/274/adentrese-en-la-gran-piramide-de-guiza-en-3d/',source:'Digital Giza / Mused · recorrido creado in situ con participación del Ministerio de Turismo y Antigüedades de Egipto.'},
+ unas:{title:'𓂀 Expedición 2 · Pirámide de Unas',narr:'Ahora viajás a Saqqara. La pirámide de Unas fue la primera pirámide conocida decorada con los Textos de las Pirámides.',mission:'Acercate a las paredes. Buscá columnas de jeroglíficos. Elegí tres signos que puedas reconocer visualmente y observá cómo se organizan.',url:'https://my.matterport.com/show/?m=o5Ex5Xo7UkE',source:'Ministerio de Turismo y Antigüedades de Egipto · recorrido virtual del complejo funerario de Unas.'},
+ meresankh:{title:'👑 Expedición 3 · Tumba de Meresankh III',narr:'Meresankh tercera fue nieta de Keops. Su tumba conserva relieves y pinturas que permiten investigar personas, trabajos y objetos del mundo funerario.',mission:'Buscá una escena con personas y otra con objetos. ¿Qué información nos aportan sobre la sociedad y las creencias egipcias?',url:'https://my.matterport.com/show/?m=d42fuVA21To',source:'Ministerio de Turismo y Antigüedades de Egipto · visita virtual de la tumba de Meresankh III.'},
+ djoser:{title:'🔎 Expedición 4 · Pirámide escalonada de Djoser',narr:'Viajás a una etapa anterior. La pirámide escalonada de Djoser fue una construcción decisiva en la evolución de las tumbas reales monumentales.',mission:'Observá su forma exterior y sus espacios. Comparala con Keops: ¿qué diferencias arquitectónicas podés identificar?',url:'https://my.matterport.com/show/?m=zBpDdPqxTKz',source:'Ministerio de Turismo y Antigüedades de Egipto · recorrido virtual del complejo de Djoser.'}
+};
+function openExpedition(k){const e=expeditions[k];title.textContent=e.title;body.innerHTML=`<p>${e.narr}</p><div class="missionBox"><b>🔎 TU MISIÓN</b><p>${e.mission}</p></div><a class="travelBtn" href="${e.url}" target="_blank" rel="noopener">ABRIR RECORRIDO 3D REAL ↗</a><p class="returnTip">Cuando termines, cerrá esa pestaña o volvé con el botón Atrás del teléfono para continuar Misión Egipto.</p><p class="sourceNote">Fuente del recorrido: ${e.source}</p>`;lastNarration=e.narr+' '+e.mission;openPanel();}
+document.querySelectorAll('[data-exp]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.exp;if(expeditions[k])openExpedition(k);else if(k==='faraon'||k==='dioses')openRoyalMuseum();else if(k==='desafio')startQuiz();else if(k==='museo')openArchaeologyMuseum();}));
+
+/* Ambiente generado en el navegador: viento suave + pulsos graves, sin archivos externos. */
+
+const audioToggle=document.querySelector('#audioToggle');
+const audioExpanded=document.querySelector('#audioExpanded');
+let audioHideTimer=null;
+function collapseAudio(){
+ audioExpanded.classList.remove('open');
+ audioToggle.textContent='🎧';
+}
+function expandAudio(){
+ audioExpanded.classList.add('open');
+ audioToggle.textContent='✕';
+ clearTimeout(audioHideTimer);
+ audioHideTimer=setTimeout(collapseAudio,5000);
+}
+audioToggle.addEventListener('click',()=>{
+ if(audioExpanded.classList.contains('open')) collapseAudio(); else expandAudio();
+});
+function autoCollapseAudio(){
+ clearTimeout(audioHideTimer);
+ audioHideTimer=setTimeout(collapseAudio,900);
+}
+
+document.querySelector('#soundBtn').addEventListener('click',async()=>{
+ const btn=document.querySelector('#soundBtn');
+ if(ambientOn){ambientNodes.forEach(n=>{try{n.stop?.();n.disconnect?.()}catch(e){}});ambientNodes=[];ambientOn=false;btn.textContent='🔇';autoCollapseAudio();return;}
+ audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); await audioCtx.resume();
+ const gain=audioCtx.createGain();gain.gain.value=.025;gain.connect(audioCtx.destination);
+ const buffer=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate);
+ const d=buffer.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.35;
+ const noise=audioCtx.createBufferSource();noise.buffer=buffer;noise.loop=true;
+ const filter=audioCtx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=520;
+ noise.connect(filter);filter.connect(gain);noise.start();
+ const osc=audioCtx.createOscillator(),og=audioCtx.createGain();osc.type='sine';osc.frequency.value=73;og.gain.value=.012;osc.connect(og);og.connect(audioCtx.destination);osc.start();
+ ambientNodes=[noise,osc,gain,filter,og];ambientOn=true;btn.textContent='🔉';autoCollapseAudio();
+});
+
+const questions=[
+{q:'1. ¿Cuál era una función principal de las grandes pirámides?',a:['Ser mercados','Servir como monumentos funerarios reales','Ser puertos'],c:1},
+{q:'2. ¿Quién estaba en la cima de la organización política egipcia?',a:['El campesino','El artesano','El faraón'],c:2},
+{q:'3. ¿Para qué servía un sarcófago?',a:['Para proteger el cuerpo del difunto','Para navegar por el Nilo','Para guardar alimentos'],c:0},
+{q:'4. ¿Qué eran los jeroglíficos?',a:['Una herramienta agrícola','Un sistema de escritura','Una moneda'],c:1},
+{q:'5. ¿Con qué estaba relacionado Anubis?',a:['La agricultura','La navegación','Los ritos funerarios'],c:2},
+{q:'6. ¿Qué río fue fundamental para la civilización egipcia?',a:['Éufrates','Nilo','Tigris'],c:1},
+{q:'7. ¿Cómo se llama el corredor alto e inclinado de la Gran Pirámide?',a:['Gran Galería','Patio Real','Avenida Sagrada'],c:0},
+{q:'8. ¿Qué característica tenía la religión egipcia?',a:['No tenía dioses','Era monoteísta en toda su historia','Rendía culto a numerosos dioses'],c:2},
+{q:'9. ¿Con qué astro se asociaba principalmente Ra?',a:['La Luna','El Sol','Venus'],c:1},
+{q:'10. ¿Qué proceso se relacionaba con la conservación del cuerpo?',a:['Momificación','Irrigación','Escritura'],c:0}
+];
+let quiz=[],qi=0,score=0;
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function startQuiz(){hideMenus();collapseAudio();quiz=shuffle(questions).slice(0,5);qi=0;score=0;renderQuestion();}
+function renderQuestion(){
+ title.textContent='🏆 Desafío del arqueólogo';
+ if(qi>=quiz.length){body.innerHTML=`<p><b>¡Misión terminada!</b></p><p>Obtuviste <b>${score} de ${quiz.length}</b>.</p><button class="action" id="again">🔄 Jugar otra vez</button>`;openPanel();lastNarration=`Misión terminada. Obtuviste ${score} de ${quiz.length} respuestas correctas.`;document.querySelector('#again').addEventListener('click',startQuiz);return;}
+ const x=quiz[qi];
+ // También se mezcla el orden visible de respuestas conservando cuál es la correcta.
+ const opts=x.a.map((v,i)=>({v,ok:i===x.c})); const mixed=shuffle(opts);
+ body.innerHTML=`<p><b>Pregunta ${qi+1} de ${quiz.length}</b></p><p>${x.q.replace(/^\d+\.\s*/,'')}</p><div class="quiz">${mixed.map((o,i)=>`<button data-i="${i}" data-ok="${o.ok}">${o.v}</button>`).join('')}</div><div id="feedback" class="feedback"></div>`;
+ openPanel();lastNarration=x.q;
+ body.querySelectorAll('[data-i]').forEach(btn=>btn.addEventListener('click',()=>{
+  const ok=btn.dataset.ok==='true',fb=document.querySelector('#feedback');body.querySelectorAll('[data-i]').forEach(b=>b.disabled=true);
+  if(ok){score++;btn.classList.add('correct');fb.textContent='✓ ¡Correcto!';}
+  else{btn.classList.add('wrong');body.querySelector('[data-ok="true"]').classList.add('correct');fb.textContent='Revisá la respuesta marcada en verde.';}
+  setTimeout(()=>{qi++;renderQuestion()},1200);
+ }));
+}
+</script>
+</body>
+</html>

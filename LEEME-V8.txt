@@ -1,0 +1,12 @@
+MISIÓN EGIPTO V8 · EXPEDICIÓN 3D REAL
+
+Esta versión reemplaza la Realidad Aumentada por una interfaz táctil.
+No usa cámara, targets.mind ni modelos propios de la pirámide.
+
+Expediciones:
+1. Gran Pirámide de Keops — Digital Giza / Mused
+2. Pirámide de Unas — recorrido virtual enlazado por el Ministerio de Turismo y Antigüedades de Egipto
+3. Tumba de Meresankh III — recorrido virtual enlazado por el Ministerio
+4. Complejo de Djoser — recorrido virtual enlazado por el Ministerio
+
+Para GitHub Pages: reemplazar los archivos anteriores por el contenido de este ZIP.
