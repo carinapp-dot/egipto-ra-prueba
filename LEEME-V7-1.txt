@@ -1,0 +1,16 @@
+MISIÓN EGIPTO V7.1 — CORRECCIÓN VISUAL
+
+Esta versión corrige el error de V7 que dejaba visible la escena exterior de V5.
+
+CAMBIOS QUE DEBEN VERSE INMEDIATAMENTE:
+1. Ya NO aparece el cono/pirámide lisa de V5.
+2. Ya NO aparecen los muñecos/bosquejos de faraón, sarcófago, jeroglíficos y Anubis alrededor.
+3. La pirámide exterior se carga desde assets/gran-piramide-khufu.glb.
+4. Alrededor quedan únicamente cuatro hotspots discretos (+), para no fingir objetos 3D que todavía no son definitivos.
+5. Arriba debe decir V7.1.
+6. Insignias reales abre el nuevo museo de atributos; Museo 3D conserva las piezas arqueológicas externas.
+
+IMPORTANTE:
+- Subir también la carpeta assets.
+- Probar en egipto-ra-prueba.
+- Si al abrir NO aparece V7.1 arriba, el teléfono está mostrando caché/una versión anterior.
