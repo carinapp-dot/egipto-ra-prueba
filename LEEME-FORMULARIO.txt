@@ -1,0 +1,11 @@
+MISIÓN EGIPTO V23 · FORMULARIO CONECTADO
+
+El Google Forms ya está configurado en config.js.
+El alumno finaliza 32 actividades, ve su nota (1–10), puntaje e intentos, toca ENTREGAR MI EVALUACIÓN y Google Forms abre con los cuatro campos completados. Debe pulsar ENVIAR en Google Forms.
+
+Puntuación: 32 actividades x 10 = 320. Primer intento 10, segundo 7, tercero 4, cuarto o posterior 2.
+Escala: 0–44:1; 45–89:2; 90–134:3; 135–179:4; 180–223:5; 224–243:6; 244–262:7; 263–281:8; 282–300:9; 301–320:10.
+
+Para publicar en GitHub Pages: subir index.html, config.js, portada-egipto.png y carpeta assets completa. No subir solo index.html.
+
+IMPORTANTE: comprobar una entrega de prueba real y su recepción en Respuestas de Google Forms antes de compartir con alumnos. La aplicación no puede confirmar el envío por sí misma.
